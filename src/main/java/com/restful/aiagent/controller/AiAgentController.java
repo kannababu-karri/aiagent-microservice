@@ -40,8 +40,6 @@ import com.restful.aiagent.service.BatchRecordsService;
 import com.restful.aiagent.service.ComplianceResultsService;
 import com.restful.aiagent.utils.AiReportAnalyzer;
 
-//@CrossOrigin(origins = "http://localhost:4200")
-@CrossOrigin(origins = "http://localhost:4200", allowedHeaders = "*", allowCredentials = "true")
 @RestController
 @RequestMapping("/api/aiagent")
 public class AiAgentController {
