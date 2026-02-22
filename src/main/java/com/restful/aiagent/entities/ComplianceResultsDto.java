@@ -14,6 +14,9 @@ public class ComplianceResultsDto {
     private Long batchId;
     private String batchNo;
     private String productName;
+    private String uploadedBy;
+    private LocalDateTime uploadDate;
+    private String status;
 
     private int score;
     private String riskLevel;
@@ -52,6 +55,30 @@ public class ComplianceResultsDto {
 
 	public void setProductName(String productName) {
 		this.productName = productName;
+	}
+	
+	public String getUploadedBy() {
+		return uploadedBy;
+	}
+	
+	public void setUploadedBy(String uploadedBy) {
+		this.uploadedBy = uploadedBy;
+	}
+	
+	public LocalDateTime getUploadDate() {
+		return uploadDate;
+	}
+	
+	public void setUploadDate(LocalDateTime uploadDate) {
+		this.uploadDate = uploadDate;
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
 	}
 
 	public int getScore() {

@@ -131,6 +131,9 @@ public class ComplianceResultsService {
             dto.setBatchId(batch.getId());
             dto.setBatchNo(batch.getBatchNo());
             dto.setProductName(batch.getProductName());
+            dto.setUploadedBy(batch.getUploadedBy());
+            dto.setUploadDate(batch.getUploadDate());
+            dto.setStatus(batch.getStatus());
         }
 
         return dto;

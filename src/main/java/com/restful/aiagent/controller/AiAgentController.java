@@ -2,6 +2,7 @@ package com.restful.aiagent.controller;
 
 import java.io.File;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,7 +11,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -39,9 +42,11 @@ import com.restful.aiagent.service.AuditLogsService;
 import com.restful.aiagent.service.BatchRecordsService;
 import com.restful.aiagent.service.ComplianceResultsService;
 import com.restful.aiagent.utils.AiReportAnalyzer;
+import com.restful.aiagent.utils.ILConstants;
 
 @RestController
 @RequestMapping("/api/aiagent")
+@CrossOrigin(origins = {ILConstants.ANGULAR_URL_DEV, ILConstants.ANGULAR_URL_PROD})
 public class AiAgentController {
 	
 	private static final Logger _LOGGER = LoggerFactory.getLogger(AiAgentController.class);
@@ -50,8 +55,6 @@ public class AiAgentController {
 	private final ComplianceResultsService complianceResultsService;
 	private final AuditLogsService auditLogsService;
     private final ObjectMapper mapper;
-	
-	private static final String AI_PYTHON_URL = "http://127.0.0.1:8000/analyze";
 	
 	private final RestTemplate restTemplate;
 	
@@ -99,6 +102,10 @@ public class AiAgentController {
 											        @RequestHeader("Authorization") String token) throws Exception {
 		
 		_LOGGER.info(">>> Inside uploadBatchProcessPdf <<<");
+		
+		_LOGGER.info(">>> Inside file <<<"+file);
+		_LOGGER.info(">>> Inside batchJson <<<"+batchJson);
+		_LOGGER.info(">>> Inside token <<<"+token);
 
 	    if (file.isEmpty()) {
 	        return ResponseEntity.badRequest().body("File is empty");
@@ -106,6 +113,7 @@ public class AiAgentController {
 
         // 1. Convert JSON → Object
         BatchRecords batch = mapper.readValue(batchJson, BatchRecords.class);
+        batch.setUploadDate(LocalDateTime.now());
 
         // 2. INSERT or UPDATE
         BatchRecords savedBatch = batchRecordsService.saveOrUpdate(batch);
@@ -144,9 +152,53 @@ public class AiAgentController {
         return ResponseEntity.ok(result);
 	}
 	
+	@GetMapping("/angular-batch-records")
+    public ResponseEntity<PageResponseDto<ComplianceResultsDto>> getAngularBatchRecords(
+    		@PageableDefault(size = 5, sort = "productName")
+    	    Pageable pageable
+    		) {
+    	_LOGGER.info(">>> Inside getAngularBatchRecords. <<<");
+    	
+    	Page<BatchRecords> page = batchRecordsService.findAllBatchRecords(pageable);
+    	
+    	List<ComplianceResultsDto> complianceResultsDto = new ArrayList<ComplianceResultsDto>();
+    	
+    	if(page != null && page.getContent() != null && page.getContent().size() > 0) {
+    		
+    		Pageable unsortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.unsorted());
+    		
+    		_LOGGER.info(">>> Inside page.getContent().size. <<<"+page.getContent().size());
+    		
+		    List<Long> batchIds = page.getContent().stream()
+		            .map(BatchRecords::getId)
+		            .toList();
+		    
+		    _LOGGER.info(">>> Inside batchIds <<<"+batchIds.size());
+		    
+		    Page<ComplianceResultsDto> pageComplianceResults = complianceResultsService.getComplianceResultsForBatches(batchIds, unsortedPageable);
+		    
+		    complianceResultsDto = pageComplianceResults.getContent();
+		    
+		    _LOGGER.info(">>> Inside complianceResultsDto <<<"+complianceResultsDto.size());
+	    }
+    	
+    	PageResponseDto<ComplianceResultsDto> dto = new PageResponseDto<>();
+    	
+    	if(page != null) {
+	    	dto.setContent(complianceResultsDto);
+	        dto.setTotalPages(page.getTotalPages());
+	        dto.setTotalElements(page.getTotalElements());
+	        dto.setPageNumber(page.getNumber());
+	        dto.setPageSize(page.getSize());
+    	}
+
+        return ResponseEntity.ok(dto);
+    	
+    }
+	
 	@GetMapping("/batch-records")
     public ResponseEntity<PageResponseDto<BatchRecords>> getBatchRecords(
-    		@PageableDefault(size = 10, sort = "product_name")
+    		@PageableDefault(size = 5, sort = "productName")
     	    Pageable pageable
     		) {
     	_LOGGER.info(">>> Inside getBatchRecords. <<<");
@@ -169,7 +221,7 @@ public class AiAgentController {
 	
 	@GetMapping("/compliance-results")
 	public ResponseEntity<PageResponseDto<ComplianceResultsDto>> getComplianceResults(
-	        @PageableDefault(size = 10, sort = "riskLevel") Pageable pageable,
+	        @PageableDefault(size = 5, sort = "riskLevel") Pageable pageable,
 	        @RequestParam("batchRecordIds") List<Long> batchIds) {
 
 	    _LOGGER.info(">>> Inside getComplianceResults. <<<");
@@ -242,7 +294,7 @@ public class AiAgentController {
         // Call FastAPI
         ResponseEntity<String> response =
                 restTemplate.postForEntity(
-                		AI_PYTHON_URL,
+                		ILConstants.AI_PYTHON_URL,
                         requestEntity,
                         String.class
                 );
