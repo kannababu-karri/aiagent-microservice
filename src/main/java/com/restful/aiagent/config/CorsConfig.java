@@ -1,6 +1,5 @@
 package com.restful.aiagent.config;
 
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -12,7 +11,7 @@ public class CorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-            .allowedOrigins(ILConstants.ANGULAR_URL_DEV, ILConstants.ANGULAR_URL_PROD)
+            .allowedOrigins(ILConstants.ANGULAR_URL_DEV, ILConstants.ANGULAR_URL_PROD, ILConstants.ANGULAR_URL_PROD_HTTPS)
             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
             .allowedHeaders("Authorization","Content-Type","X-Requested-With")
             .exposedHeaders("Authorization")

@@ -12,6 +12,10 @@ public class PageResponseDto<T> implements Serializable {
     private long totalElements;
     private int pageNumber;
     private int pageSize;
+    
+    private int total_files;
+    private List<T> documents;
+    
 	public List<T> getContent() {
 		return content;
 	}
@@ -42,4 +46,17 @@ public class PageResponseDto<T> implements Serializable {
 	public void setPageSize(int pageSize) {
 		this.pageSize = pageSize;
 	}
+	public int getTotal_files() {
+		return total_files;
+	}
+	public void setTotal_files(int total_files) {
+		this.total_files = total_files;
+	}
+	public List<T> getDocuments() {
+		return documents;
+	}
+	public void setDocuments(List<T> documents) {
+		this.documents = documents;
+	}
+	
 }
