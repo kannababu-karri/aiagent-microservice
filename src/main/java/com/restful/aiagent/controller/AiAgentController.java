@@ -42,8 +42,11 @@ import com.restful.aiagent.entities.BatchRecords;
 import com.restful.aiagent.entities.ComplianceResults;
 import com.restful.aiagent.entities.ComplianceResultsDto;
 import com.restful.aiagent.entities.DocumentDto;
+import com.restful.aiagent.entities.LogsDto;
+import com.restful.aiagent.entities.MultipartInputStreamFileResource;
 import com.restful.aiagent.entities.PageResponseDto;
 import com.restful.aiagent.entities.RagResponseDto;
+import com.restful.aiagent.entities.ResumeDto;
 import com.restful.aiagent.service.AuditLogsService;
 import com.restful.aiagent.service.BatchRecordsService;
 import com.restful.aiagent.service.ComplianceResultsService;
@@ -52,9 +55,8 @@ import com.restful.aiagent.utils.ILConstants;
 
 @RestController
 @RequestMapping("/api/aiagent")
-@CrossOrigin(origins = { ILConstants.ANGULAR_URL_DEV, 
-							ILConstants.ANGULAR_URL_PROD,
-							ILConstants.ANGULAR_URL_PROD_HTTPS })
+@CrossOrigin(origins = { ILConstants.ANGULAR_URL_DEV, ILConstants.ANGULAR_URL_PROD,
+		ILConstants.ANGULAR_URL_PROD_HTTPS })
 public class AiAgentController {
 
 	private static final Logger _LOGGER = LoggerFactory.getLogger(AiAgentController.class);
@@ -284,47 +286,135 @@ public class AiAgentController {
 		_LOGGER.info(">>> Inside getTotal_files <<<: " + result.getTotal_files());
 		return ResponseEntity.ok(result);
 	}
-	
+
 	@PostMapping("/ask-medireg-question")
-	public ResponseEntity<RagResponseDto> getMediragAskQuestion(
-	        @RequestBody Map<String, String> requestBody,
-	        @RequestHeader("Authorization") String token) {
+	public ResponseEntity<RagResponseDto> getMediragAskQuestion(@RequestBody Map<String, String> requestBody,
+			@RequestHeader("Authorization") String token) {
 
-	    _LOGGER.info(">>> Inside getMediragAskQuestion <<<");
-	    
-	    _LOGGER.info(">>> Inside token <<<"+token);
+		_LOGGER.info(">>> Inside getMediragAskQuestion <<<");
 
-	    String userQuestion = requestBody.get("query");
+		_LOGGER.info(">>> Inside token <<<" + token);
 
-	    String baseUrl =
-	        ILConstants.AI_PYTHON_MEDI_RAG_URL + "/ask-medireg-question";
+		String userQuestion = requestBody.get("query");
 
-	    _LOGGER.info(">>> User Question: " + userQuestion);
+		String baseUrl = ILConstants.AI_PYTHON_MEDI_RAG_URL + "/ask-medireg-question";
 
-	    HttpHeaders headers = new HttpHeaders();
-	    headers.setContentType(MediaType.APPLICATION_JSON);
+		_LOGGER.info(">>> User Question: " + userQuestion);
 
-	    Map<String, String> body = new HashMap<>();
-	    body.put("query", userQuestion);
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
 
-	    HttpEntity<Map<String, String>> request =
-	            new HttpEntity<>(body, headers);
+		Map<String, String> body = new HashMap<>();
+		body.put("query", userQuestion);
 
-	    ResponseEntity<RagResponseDto> response =
-	            restTemplate.postForEntity(
-	                    baseUrl,
-	                    request,
-	                    RagResponseDto.class
-	            );
+		HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
 
-	    RagResponseDto ragResponseDto = response.getBody();
+		ResponseEntity<RagResponseDto> response = restTemplate.postForEntity(baseUrl, request, RagResponseDto.class);
 
-	    _LOGGER.info(">>> Answer: " + ragResponseDto.getAnswer());
-	    _LOGGER.info(">>> Sources: " + ragResponseDto.getSources());
+		RagResponseDto ragResponseDto = response.getBody();
 
-	    return ResponseEntity.ok(ragResponseDto);
+		_LOGGER.info(">>> Answer: " + ragResponseDto.getAnswer());
+		_LOGGER.info(">>> Sources: " + ragResponseDto.getSources());
+
+		return ResponseEntity.ok(ragResponseDto);
 	}
 	
+	@PostMapping("/check-resume")
+	public ResponseEntity<?> checkResume(
+	        @RequestParam("resumeFile") MultipartFile resumeFile,
+	        @RequestParam("jobDescription") String jobDescription) throws Exception {
+		
+		_LOGGER.info(">>> Inside checkResume <<<");
+
+		if (resumeFile.isEmpty()) {
+			return ResponseEntity.badRequest().body("File is empty");
+		}
+		_LOGGER.info(">>> Job Description received <<< {}", jobDescription);
+		
+		String baseUrl = ILConstants.AI_PYTHON_MEDI_RAG_URL + "/ai/match/resume";
+		
+		_LOGGER.info(">>> Python AI URL <<< {}", baseUrl);
+		
+		_LOGGER.info(">>> Inside file.getName() <<<" + resumeFile.getName());
+		_LOGGER.info(">>> Inside file.getSize() <<<" + resumeFile.getSize());
+
+	    MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+
+	    body.add("resumeFile", new MultipartInputStreamFileResource(
+	            resumeFile.getInputStream(),
+	            resumeFile.getOriginalFilename()
+	    ));
+
+	    body.add("jobDescription", jobDescription);
+
+	    HttpHeaders headers = new HttpHeaders();
+	    headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+	    HttpEntity<MultiValueMap<String, Object>> requestEntity =
+	            new HttpEntity<>(body, headers);
+
+	    ResponseEntity<ResumeDto> response =
+	            restTemplate.postForEntity(
+	            		baseUrl,
+	                    requestEntity,
+	                    ResumeDto.class
+	            );
+
+		ResumeDto resumeDto = response.getBody();
+
+		_LOGGER.info(">>> Response received from AI service <<< {}", resumeDto);
+
+		return ResponseEntity.ok(resumeDto);
+	}
+	
+	@PostMapping("/check-logs")
+	public ResponseEntity<LogsDto> checkLogs(@RequestParam("logFile") MultipartFile logFile) throws Exception {
+
+		try {
+			_LOGGER.info(">>> Inside getMediragAskQuestion <<<");
+			
+			_LOGGER.info(">>> LogFile received <<< {}", logFile);
+	
+			String baseUrl = ILConstants.AI_PYTHON_MEDI_RAG_URL + "/ai/log/analyze";
+			_LOGGER.info(">>> Python AI URL <<< {}", baseUrl);
+			
+			_LOGGER.info(">>> Inside logFile.getName() <<<" + logFile.getName());
+			_LOGGER.info(">>> Inside logFile.getSize() <<<" + logFile.getSize());
+	
+		    MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+	
+		    body.add("logFile", new MultipartInputStreamFileResource(
+		    		logFile.getInputStream(),
+		    		logFile.getOriginalFilename()
+		    ));
+	
+		    HttpHeaders headers = new HttpHeaders();
+		    headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+	
+		    HttpEntity<MultiValueMap<String, Object>> requestEntity =
+		            new HttpEntity<>(body, headers);
+	
+		    _LOGGER.info(">>> Before calling <<<");
+		    ResponseEntity<LogsDto> response =
+		            restTemplate.postForEntity(
+		            		baseUrl,
+		                    requestEntity,
+		                    LogsDto.class
+		            );
+		    _LOGGER.info(">>> After calling <<<");
+	
+		    LogsDto logsDto = response.getBody();
+	
+			_LOGGER.info(">>> Response received from AI service <<< {}", logsDto);
+	
+			return ResponseEntity.ok(logsDto);
+		} catch (Exception exp) {
+			_LOGGER.info(">>> Error is processing log file. <<< {}", exp);
+			throw exp;
+    	}
+
+	}
+
 	/**
 	 * Retrieve python service
 	 * 
@@ -372,10 +462,6 @@ public class AiAgentController {
 
 			_LOGGER.info(">>> Inside file.getName() <<<" + file.getName());
 			_LOGGER.info(">>> Inside file.getSize() <<<" + file.getSize());
-
-			// Save file to temp location (optional)
-			// File tempFile = File.createTempFile("aiagent-medirag", ".pdf");
-			// file.transferTo(tempFile);
 
 			String originalFileName = file.getOriginalFilename();
 			if (originalFileName == null) {
