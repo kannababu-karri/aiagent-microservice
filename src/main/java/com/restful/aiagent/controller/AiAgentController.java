@@ -42,6 +42,8 @@ import com.restful.aiagent.entities.BatchRecords;
 import com.restful.aiagent.entities.ComplianceResults;
 import com.restful.aiagent.entities.ComplianceResultsDto;
 import com.restful.aiagent.entities.DocumentDto;
+import com.restful.aiagent.entities.FraudDetectionResponseDto;
+import com.restful.aiagent.entities.FraudTransaction;
 import com.restful.aiagent.entities.LogsDto;
 import com.restful.aiagent.entities.MultipartInputStreamFileResource;
 import com.restful.aiagent.entities.PageResponseDto;
@@ -412,6 +414,58 @@ public class AiAgentController {
 			_LOGGER.info(">>> Error is processing log file. <<< {}", exp);
 			throw exp;
     	}
+
+	}
+	
+	@PostMapping("/fraud-detection")
+	public ResponseEntity<FraudDetectionResponseDto> fraudDetection(
+			@RequestBody FraudTransaction fraudTransaction, 
+			@RequestHeader("Authorization") String token) throws Exception {
+
+		try {
+			_LOGGER.info(">>> Inside fraudDetection <<<");
+			
+			_LOGGER.info(">>> fraudTransaction received <<< {}", fraudTransaction);
+	
+			String baseUrl = ILConstants.AI_PYTHON_FRAUD_DETECTION_URL + "/ai/ml/predict";
+			_LOGGER.info(">>> Python AI URL <<< {}", baseUrl);
+			
+			HttpHeaders headers = new HttpHeaders();
+			headers.setContentType(MediaType.APPLICATION_JSON);
+			//headers.set("Authorization", token); // forward token
+			
+			Map<String, Object> request = new HashMap<>();
+			request.put("transactionDate", fraudTransaction.getTransactionDate());
+			request.put("amount", fraudTransaction.getAmount());
+			request.put("merchantID", fraudTransaction.getMerchantID());
+			request.put("transactionType", fraudTransaction.getTransactionType());
+			request.put("location", fraudTransaction.getLocation());
+
+			HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
+
+	        _LOGGER.info(">>> Sending to Python <<< {}", fraudTransaction);
+
+	        ResponseEntity<String> response = restTemplate.exchange(
+	                baseUrl,
+	                HttpMethod.POST,
+	                entity,
+	                String.class
+	        );
+
+	        _LOGGER.info(">>> Response received <<< {}", response.getBody());
+
+	        // Convert JSON string to DTO
+	        ObjectMapper mapper = new ObjectMapper();
+	        FraudDetectionResponseDto result = mapper.readValue(
+	                response.getBody(), FraudDetectionResponseDto.class
+	        );
+
+	        return ResponseEntity.ok(result);
+	        
+		} catch (Exception exp) {
+	        _LOGGER.error(">>> Error processing fraud detection <<<", exp);
+	        throw exp;
+	    }
 
 	}
 
