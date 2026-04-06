@@ -53,16 +53,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         
         _LOGGER.info(">>> authHeader <<<:"+authHeader);
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            _LOGGER.info(">>> token <<<:"+token);
+        //if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            //String token = authHeader.substring(7);
+            //_LOGGER.info(">>> token <<<:"+token);
 
-            if (jwtUtil.validateToken(token)) {
+            //if (jwtUtil.validateToken(token)) {
                 chain.doFilter(request, response);
                 return;
-            }
-        }
+            //}
+        //}
 
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        //response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
     }
 }

@@ -7,4 +7,6 @@ public final class ILConstants {
 	public static final String AI_PYTHON_URL = "http://127.0.0.1:8000/analyze";
 	public static final String AI_PYTHON_MEDI_RAG_URL = "http://127.0.0.1:8001";
 	public static final String AI_PYTHON_FRAUD_DETECTION_URL = "http://127.0.0.1:8002";
+	public static final String AI_PYTHON_PATIENT_APPOINTMENT_AGENT = "http://127.0.0.1:8003";
+	
 }
